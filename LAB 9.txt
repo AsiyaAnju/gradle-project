@@ -1,0 +1,20 @@
+1. pre requires - GitHub and Microsoft acc
+2. search azure devops in google
+3. azure devops services click on tht
+4. the azure webpage is visible click on get started with azure
+5. try azure for free
+6. Microsoft login if yes login or sign up
+7. to sign up give ur mail id and password
+8. provide necessary details as birthdate,country
+9. You will get a verification code to the mail-id provided, copy and paste it when it asks for the verification code
+10. provide your profile details like first and last name 
+11. provide ur mail id and phone number - enter the verifiction code
+12. Provide company name, in your case provide college name, PAN is optional, then provide the address details
+13. You will be redirected to the payments, section where you need to provide the credit card details they will be deducting a minimal charges which will be credited back
+14. once payment is successful -  Now, you are at the microsoft azure account page.
+15. in search-bar of the microsoft azure search for the azure devops, click on the azure devops organization
+16. my azure devops organisation
+17. create new organisation
+18. provide the project name along with private or public access
+19. once done ur project is created
+20.  After creating the your Azure DevOps organization must have access to Microsoft-hosted parallel jobs. You can either purchase a parallel job or you can request a free grant.

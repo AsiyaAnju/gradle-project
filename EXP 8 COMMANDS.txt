@@ -1,0 +1,161 @@
+1. create 3 instances in aws [ansible-server, ansible-client-server and jenkins-server]
+
+2. create 3 sessions in mobaXterm and execute the basic commands
+jenkins-server                           ansible-client-server                   ansible-server    
+sudo hostname jenkins-server             sudo -i                                 sudo -i 
+bash                                     hostname ansible-client-server          hostname ansible-server
+                                         bash                                    bash
+--------------------------------------------------------------------------------------------------------
+3. create two files deploy.yml and inventory in ansible-server
+
+in ansible server
+touch deploy.yml
+touch inventory
+
+vi deploy.yml
+---
+- name: deploy to tomcat
+  hosts: tomcat
+  gather_facts: true
+  become: yes
+  tasks:
+    - name: Copy the artifact to the deployment directory
+      copy:
+        src: /home/ubuntu/target/ROOT.war
+        dest: /opt/apache-tomcat-10.1.36/webapps/
+
+vi inventory
+public ip of ansible-client-server
+--------------------------------------------------------------------------------------------------------
+4. install ansible in ansible-server
+--------------------------------------------------------------------------------------------------------
+5. install Apache Tomcat in ansible-client-server
+Install Apache Tomcat -> in the left side click on Tomcat 10 -> 10.1.41 -> copy the link address of tar.gz and paste it in Mobaxterm
+
+https://dlcdn.apache.org/tomcat/tomcat-10/v10.1.41/bin/apache-tomcat-10.1.41.tar.gz
+
+commands in ansible-client-server
+-> wget https://dlcdn.apache.org/tomcat/tomcat-10/v10.1.41/bin/apache-tomcat-10.1.41.tar.gz
+-> cd /opt/
+-> sudo tar -xvzf /root/apache-tomcat-10.1.41.tar.gz -C /opt/
+-> sudo mv /opt/apache-tomcat-10.1.41 /opt/tomcat [optional]
+-> ls
+  output : tomcat
+--------------------------------------------------------------------------------------------------------
+6. install Jenkins in Jenkins server
+
+IN JENKINS SERVER
+
+Install Jenkins in Ubunut -> Select Linux [https://www.jenkins.io/doc/book/installing/linux/]
+
+In Installation of Java run the 3 commands given
+-> sudo apt update
+-> sudo apt install fontconfig openjdk-17-jre [change 21 to 17]
+-> java -version
+
+In Long Term Support release execute the commands as it is in the website
+-> sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+-> echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc]" \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+-> sudo apt-get update
+-> sudo apt-get install jenkins
+--------------------------------------------------------------------------------------------------------
+7.Edit security groups
+
+Go to jenkins-server instance in AWS -> Security tab -> security group link -> edit inbound rules -> Add rule -> port no 8080 and IPv4 from anywhere -> save
+
+open in google <public ip of jenkins-server>:8080
+--------------------------------------------------------------------------------------------------------
+8. Jenkins administrator password
+
+in jenkins-server in mobaXterm
+-> sudo -i
+-> cd /var/lib/jenkins/secrets/
+-> ls
+-> cat initialAdminPassword -> copy the password
+ec5f4ac3b3f9411891852ff29e783c6d
+
+paste this password in the Jenkins page in google and open start using Jenkins
+
+--------------------------------------------------------------------------------------------------------
+9. in Jenkins Dashboard - Jenkins setup
+
+=>manage Jenkins -> plugins
+  -> Install Publish Over SSH plugin
+
+=>manage Jenkins -> system
+ ~ Under “Publish over SSH” followed by under “Jenkins SSH Key” enter pem key(downloaded one) of Jenkins-server instance in “Key” section
+
+ ~ under “SSH server” click on “Add” and give
+   name: ansible server
+   hostname: public ip of ansible-server
+   username: ubuntu
+   remote directory: /home/ubuntu
+
+ ~ Click on Advanved
+   Select “use password authentication, or use a different key” -> provide ansible-server’s pem key in the “key” section 
+
+  ~ click on “Apply” and “Save”
+
+=>manage Jenkins -> tools
+  ~ go to “Maven installation” section -> click on “Add Maven” -> name:maven and version:3.9.9
+  ~ click on “Apply” and “Save” 
+
+--------------------------------------------------------------------------------------------------------
+10. SSH KEY GENERATION
+In Jenkins server
+ssh-keygen -t rsa
+cd .ssh/
+ls
+cat id_rsa.pub
+copy the public rsa key 
+paste the jenkins-server public rsa key in the ansible-server's authorized_keys
+
+in ansible-server
+ssh-keygen -t rsa
+cd .ssh/
+ls
+cat id_rsa.pub
+copy the public rsa key
+paste the ansible-server rsa key in ansible-client-server's authorized_keys
+
+--------------------------------------------------------------------------------------------------------
+11. BUILD
+-> access jenkins dashboard -> click on “Create Job” or “New Item” 
+-> Provide Project/item name as maven project -> select Item type as freestyle project -> click on “OK”   
+-> Select “Git” under “Source Code Management” -> under “Repository URL” provide project’s git repository URL  
+-> Under “Branches to build” select branch name, usually “main” [*/main]
+-> “Build Steps” section -> click on “Add build step” -> select “Invoke top-level Maven targets” 
+-> Invoke top-level maven targets -> maven version: maven and goals: clean package install
+-> “Post-build Actions” -> click on “Add post-build action” -> select “Send build artifacts over SSH” 
+-> Send build artifacrs over SSH -> give name: ansible server
+-> IN Transfer set
+   source files: target/*.war
+   exec command: sudo ansible-playbook -i /home/ubuntu/inventory /home/ubuntu/deploy.yml
+-> click on “Build now” in project window and watch for build progress 
+
+--------------------------------------------------------------------------------------------------------
+12. VERIFICATION
+
+Verify the creation of “maven-project” folder in jenkins-server, run commands as
+cd /var/lib/jenkins/workspace/
+ls
+cd maven/project/
+ls
+cd target/
+ls
+
+Verify the creation of “target” folder in ansible-server 
+ls
+cd target/
+ls
+
+Verify the deployment “ROOT” and “ROOT.war” file in ansible-client-server 
+cd /opt/apache-tomcat-10.1.36/webapps/
+ls
+
+--------------------------------------------------------------------------------------------------------
+13.DEPLOYMENT
+-> search <Public IP of ansible-client-server>:9090 in browser and verify the successful deployment of application 
